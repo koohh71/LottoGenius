@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node.js (Frontend)
+node_modules/
+dist/
+build/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Database (SQLite file should generally not be committed if it contains real user data, 
+# but for a starter template, maybe schema only. Here we ignore the actual db file)
+# We will use Postgres in production.
+*.db
+*.sqlite3
+
+# Excel (Source data, optional to ignore if migrating to DB)
+#*.xlsx
