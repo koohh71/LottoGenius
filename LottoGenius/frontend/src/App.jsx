@@ -303,9 +303,10 @@ function App() {
                 </div>
                 {!statsData ? (<div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400"/></div>) : (
                     <>
+                        {/* 1. Bar Chart: Most Frequent Numbers */}
                         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <h3 className="text-xs font-bold text-gray-700 mb-4">🏆 최다 당첨 번호 (Top 10)</h3>
-                            <div className="h-40 w-full">
+                            <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">🔥 최다 당첨 번호 (Top 10)</h3>
+                            <div className="h-48 w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={statsData.frequency}>
                                         <XAxis dataKey="num" tick={{fontSize: 10}} />
@@ -318,27 +319,48 @@ function App() {
                                 </ResponsiveContainer>
                             </div>
                         </div>
+
+                        {/* 2. Bar Chart: Least Frequent Numbers (NEW) */}
+                        {statsData.min_frequency && (
+                            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">❄️ 최소 당첨 번호 (Bottom 10)</h3>
+                                <div className="h-48 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={statsData.min_frequency}>
+                                            <XAxis dataKey="num" tick={{fontSize: 10}} />
+                                            <YAxis hide />
+                                            <Tooltip cursor={{fill: '#fff1f2'}} contentStyle={{borderRadius: '8px', fontSize: '12px'}} />
+                                            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                                {statsData.min_frequency.map((entry, index) => <Cell key={`cell-min-${index}`} fill={index < 3 ? '#ef4444' : '#fdba74'} />)}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. Pie Chart: Number Range Distribution */}
                         <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <h3 className="text-xs font-bold text-gray-700 mb-4">🎨 구간별 분포</h3>
-                            <div className="h-48 w-full relative">
+                            <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">🎨 구간별 분포</h3>
+                            <div className="h-64 w-full relative">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie 
                                             data={statsData.ranges} 
                                             innerRadius={50} 
-                                            outerRadius={70} 
+                                            outerRadius={65} 
                                             paddingAngle={5} 
                                             dataKey="value"
                                             label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                                            labelLine={false}
-                                            style={{ fontSize: '10px', fontWeight: 'bold' }}
+                                            labelLine={true}
+                                            style={{ fontSize: '11px', fontWeight: 'bold' }}
                                         >
                                             {statsData.ranges.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                         </Pie>
-                                        <Legend iconSize={8} wrapperStyle={{fontSize: '10px'}}/>
+                                        <Legend iconSize={8} wrapperStyle={{fontSize: '11px', bottom: '0px'}}/>
                                     </PieChart>
                                 </ResponsiveContainer>
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="text-xs font-bold text-gray-400 mt-[-20px]">비율</span></div>
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8"><span className="text-xs font-bold text-gray-400">비율</span></div>
                             </div>
                         </div>
                     </>

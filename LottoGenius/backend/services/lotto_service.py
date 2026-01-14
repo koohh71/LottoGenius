@@ -65,10 +65,21 @@ def get_lotto_stats(db: Session, limit: int) -> Dict:
             r.drwt_no1, r.drwt_no2, r.drwt_no3, 
             r.drwt_no4, r.drwt_no5, r.drwt_no6
         ])
+    
+    # 1~45번 모든 번호의 빈도 계산 (0회 출현 포함)
+    counter = {n: 0 for n in range(1, 46)}
+    for n in numbers_history:
+        counter[n] += 1
         
-    counter = Counter(numbers_history)
-    freq_data = [{"num": k, "count": v} for k, v in counter.most_common(10)]
-    freq_data.sort(key=lambda x: x['count'], reverse=True)
+    # 정렬 (오름차순: 적게 나온 순)
+    sorted_counts = sorted(counter.items(), key=lambda x: x[1])
+    
+    # 최소 당첨 (적게 나온 순서 10개)
+    min_freq_data = [{"num": k, "count": v} for k, v in sorted_counts[:10]]
+    
+    # 최다 당첨 (많이 나온 순서 10개 - 뒤에서부터 자르고 뒤집기)
+    max_freq_data = [{"num": k, "count": v} for k, v in sorted_counts[-10:]]
+    max_freq_data.reverse()
     
     ranges = {"1-10": 0, "11-20": 0, "21-30": 0, "31-40": 0, "41-45": 0}
     for n in numbers_history:
@@ -80,7 +91,11 @@ def get_lotto_stats(db: Session, limit: int) -> Dict:
     
     range_data = [{"name": k, "value": v} for k, v in ranges.items()]
     
-    return {"frequency": freq_data, "ranges": range_data}
+    return {
+        "frequency": max_freq_data,
+        "min_frequency": min_freq_data,
+        "ranges": range_data
+    }
 
 def fetch_external_lotto_data(round_no: int):
     """외부 API에서 로또 데이터를 가져옵니다."""

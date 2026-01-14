@@ -14,6 +14,7 @@ class AddRoundRequest(BaseModel):
 
 class StatsResponse(BaseModel):
     frequency: List[dict]
+    min_frequency: List[dict]
     ranges: List[dict]
 
 class LatestRoundResponse(BaseModel):
