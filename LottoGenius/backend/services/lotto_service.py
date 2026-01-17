@@ -68,14 +68,22 @@ def is_valid_combination(nums: List[int]) -> bool:
         return False
 
     # 3. 연속 번호 검사
-    consecutive_cnt = 0
+    consecutive_cnt = 0 # 3연속 방지용
+    pair_cnt = 0        # 2연속 쌍 개수 (1,2 & 10,11 방지)
+    
     for i in range(len(nums) - 1):
         if nums[i+1] == nums[i] + 1:
             consecutive_cnt += 1
-            if consecutive_cnt >= constants.MAX_CONSECUTIVE_COUNT:
+            if consecutive_cnt == 1: # 새로운 쌍 발견
+                pair_cnt += 1
+            if consecutive_cnt >= constants.MAX_CONSECUTIVE_COUNT: # 3연속 이상 즉시 탈락
                 return False
         else:
             consecutive_cnt = 0
+            
+    # 연속된 쌍이 2개 이상이면 탈락 (너무 작위적임)
+    if pair_cnt > 1:
+        return False
 
     # 4. 구간 쏠림 검사
     ranges = [0] * 5
