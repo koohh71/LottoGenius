@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Loader2, PlusCircle, X, BarChart2, Hash, Wand2, PlusSquare, BookOpen } from 'lucide-react';
 
-// Components
+// Components & Services
 import NumberGrid from './components/NumberGrid';
 import GameList from './components/GameList';
 import StatsDashboard from './components/StatsDashboard';
 import UserGuide from './components/UserGuide';
+import { lottoService } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('generate');
@@ -30,8 +30,6 @@ function App() {
   const [statsData, setStatsData] = useState(null);
   const [statsLimit, setStatsLimit] = useState(10000);
 
-  const API_BASE = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`;
-
   // --- Initial Data Fetching ---
   useEffect(() => {
     fetchLatestRound();
@@ -43,15 +41,15 @@ function App() {
 
   const fetchLatestRound = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/latest-round`);
-      setLatestRound(res.data.latest_round);
+      const round = await lottoService.getLatestRound();
+      setLatestRound(round);
     } catch (e) { console.error("Load failed"); }
   };
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/stats?limit=${statsLimit}`);
-      setStatsData(res.data);
+      const data = await lottoService.getStats(statsLimit);
+      setStatsData(data);
     } catch (e) { console.error("Stats failed", e); }
   };
 
@@ -75,14 +73,14 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE}/api/generate`, {
+      const recommendations = await lottoService.generateNumbers({
         history_limit: historyLimit,
         fixed_nums: fixedNums,
         excluded_nums: excludedNums,
         count: needed
       });
       
-      const newGames = response.data.recommendations.map((nums, idx) => ({
+      const newGames = recommendations.map((nums, idx) => ({
         id: Date.now() + idx,
         type: 'AUTO',
         numbers: nums
@@ -98,10 +96,12 @@ function App() {
   const handleManualSave = async () => {
     if (!mRound || mNums.some(n => !n) || !mBonus) return alert("입력 확인 필요");
     try {
-      const res = await axios.post(`${API_BASE}/api/add-round`, {
-        round_no: parseInt(mRound), numbers: mNums.map(n => parseInt(n)), bonus: parseInt(mBonus)
+      const res = await lottoService.addRound({
+        round_no: parseInt(mRound), 
+        numbers: mNums.map(n => parseInt(n)), 
+        bonus: parseInt(mBonus)
       });
-      alert(res.data.message);
+      alert(res.message);
       fetchLatestRound();
       setShowManual(false);
       if(activeTab === 'stats') fetchStats();
