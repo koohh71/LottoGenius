@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Loader2, PlusCircle, X, BarChart2, Hash, Trash2, Wand2, PlusSquare, RotateCcw, BookOpen, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, PlusCircle, X, BarChart2, Hash, Trash2, Wand2, PlusSquare, RotateCcw, BookOpen, Info, CheckCircle2, AlertCircle, Download, Camera } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
+import html2canvas from 'html2canvas';
 
 function App() {
   const [activeTab, setActiveTab] = useState('generate');
@@ -13,9 +14,9 @@ function App() {
   const [mode, setMode] = useState('fixed'); // 'fixed' | 'excluded'
   
   // Games List (최대 5게임)
-  // Item structure: { id: Date.now(), type: 'AUTO' | 'MANUAL', numbers: [1, 2, 3, 4, 5, 6] }
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
+  const captureRef = useRef(null); // 이미지 캡처 영역 참조
 
   // Update & Stats States
   const [showManual, setShowManual] = useState(false);
@@ -55,6 +56,23 @@ function App() {
 
   // --- Generator Logic ---
   
+  // 이미지 저장 함수
+  const handleSaveImage = async () => {
+    if (!captureRef.current || games.length === 0) return;
+    try {
+        const canvas = await html2canvas(captureRef.current, {
+            backgroundColor: '#ffffff', // 배경 흰색 강제
+            scale: 2 // 해상도 2배 (선명하게)
+        });
+        const link = document.createElement('a');
+        link.download = `lotto_genius_${latestRound > 0 ? latestRound + 1 : 'next'}_recommendation.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    } catch (err) {
+        alert("이미지 저장 실패: " + err);
+    }
+  };
+
   // 수동 게임 추가
   const addManualGame = () => {
     if (games.length >= 5) return alert("최대 5게임까지만 가능합니다.");
@@ -258,11 +276,11 @@ function App() {
                 </div>
 
                 {/* 4. Games List */}
-                <div className="bg-gray-100 rounded-xl p-4 min-h-[200px]">
+                <div ref={captureRef} className="bg-gray-100 rounded-xl p-4 min-h-[200px] transition-all duration-300">
                     <div className="flex justify-between items-center mb-3">
                         <span className="text-xs font-bold text-gray-500">생성된 게임 ({games.length}/5)</span>
                         {games.length > 0 && (
-                            <button onClick={clearAllGames} className="text-xs text-red-400 flex items-center gap-1 hover:text-red-600"><Trash2 size={12}/> 전체삭제</button>
+                            <button onClick={clearAllGames} className="text-xs text-red-400 flex items-center gap-1 hover:text-red-600" data-html2canvas-ignore="true"><Trash2 size={12}/> 전체삭제</button>
                         )}
                     </div>
                     
@@ -285,12 +303,22 @@ function App() {
                                             ))}
                                         </div>
                                     </div>
-                                    <button onClick={() => removeGame(game.id)} className="text-gray-300 hover:text-red-500"><X size={16}/></button>
+                                    <button onClick={() => removeGame(game.id)} className="text-gray-300 hover:text-red-500" data-html2canvas-ignore="true"><X size={16}/></button>
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
+
+                {/* 5. Save Image Button */}
+                {games.length > 0 && (
+                    <button 
+                        onClick={handleSaveImage}
+                        className="w-full bg-teal-500 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:bg-teal-600 transition transform active:scale-95"
+                    >
+                        <Camera size={18}/> 게임 확정 및 이미지 저장
+                    </button>
+                )}
             </div>
         )}
 
