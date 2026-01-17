@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..crud import lotto_crud
 from ..schemas.lotto import GenerateRequest
+from ..core import constants
 
 # SSL 경고 끄기
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -56,40 +57,40 @@ def calculate_weights(db: Session, limit: int) -> Dict[int, int]:
 
 def is_valid_combination(nums: List[int]) -> bool:
     """생성된 번호 조합이 현실적인 패턴인지 검증합니다."""
-    # 1. 총합 검사 (통계적으로 81~200 사이가 대부분)
+    # 1. 총합 검사
     total = sum(nums)
-    if not (60 <= total <= 240):
+    if not (constants.SUM_MIN <= total <= constants.SUM_MAX):
         return False
 
-    # 2. 홀짝 비율 검사 (6:0 또는 0:6 제외)
+    # 2. 홀짝 비율 검사
     odds = sum(1 for n in nums if n % 2 != 0)
-    if odds == 0 or odds == 6:
+    if odds in constants.ODD_EVEN_RATIO_EXCLUDE:
         return False
 
-    # 3. 연속 번호 검사 (3연속 번호 제외: 1,2,3 등)
+    # 3. 연속 번호 검사
     consecutive_cnt = 0
     for i in range(len(nums) - 1):
         if nums[i+1] == nums[i] + 1:
             consecutive_cnt += 1
-            if consecutive_cnt >= 2: # 2번 연속 = 3개 숫자 연속
+            if consecutive_cnt >= constants.MAX_CONSECUTIVE_COUNT:
                 return False
         else:
             consecutive_cnt = 0
 
-    # 4. 구간 쏠림 검사 (특정 번호대 4개 초과 제외)
+    # 4. 구간 쏠림 검사
     ranges = [0] * 5
     for n in nums:
         idx = (n - 1) // 10
         if idx > 4: idx = 4
         ranges[idx] += 1
-    if any(r > 4 for r in ranges):
+    if any(r > constants.MAX_PER_DECADE for r in ranges):
         return False
 
     return True
 
 def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]:
     """조건에 맞는 로또 번호를 생성합니다 (패턴 필터링 적용)."""
-    limit = 10000 if req.history_limit > 1000 else req.history_limit
+    limit = constants.MAX_HISTORY_LIMIT if req.history_limit > 1000 else req.history_limit
     weights_dict = calculate_weights(db, limit)
     
     results = []
@@ -98,8 +99,8 @@ def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]
     for _ in range(req.count):
         best_candidate = []
         
-        # 유효한 조합을 찾을 때까지 최대 100번 시도
-        for _ in range(100):
+        # 유효한 조합을 찾을 때까지 시도
+        for _ in range(constants.MAX_RETRIES):
             selected = set(req.fixed_nums)
             population = []
             weights = []
@@ -116,12 +117,9 @@ def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]
             
             while len(selected) < 6:
                 if not temp_population: break
-                # random.choices는 복원 추출이므로 가중치 적용 후 제거 방식 사용
                 choice = random.choices(temp_population, weights=temp_weights, k=1)[0]
                 if choice not in selected:
                     selected.add(choice)
-                    # 중복 방지를 위해 선택된 놈 가중치 0으로 (야매지만 빠름) 또는 리스트에서 제거가 정석
-                    # 여기서는 그냥 set으로 중복 체크하고 넘어가되, 무한루프 방지
             
             candidate = sorted(list(selected))
             
@@ -130,7 +128,7 @@ def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]
                 best_candidate = candidate
                 break
             
-            # 실패했어도 일단 후보로 저장 (100번 다 실패하면 이거라도 씀)
+            # 실패했어도 일단 후보로 저장
             if len(candidate) == 6:
                 best_candidate = candidate
         
