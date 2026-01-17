@@ -413,7 +413,7 @@ function App() {
                 {/* 2. Number Selection */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
                     <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                        <Hash size={16} className="text-blue-500"/> 번호 조합 및 생성
+                        <Hash size={16} className="text-blue-500"/> 번호 조합 및 AI 필터링
                     </h3>
                     <ul className="space-y-2 text-xs">
                         <li className="flex gap-2">
@@ -425,14 +425,19 @@ function App() {
                         <li className="flex gap-2">
                             <X size={14} className="text-red-500 shrink-0"/>
                             <span>
-                                <strong>제외수:</strong> 분석에서 뺄 번호를 선택하세요. AI가 추천 번호를 만들 때 이 번호들은 제외됩니다.
+                                <strong>제외수:</strong> 분석에서 뺄 번호를 선택하세요.
                             </span>
                         </li>
                         <li className="flex gap-2">
                             <Wand2 size={14} className="text-indigo-500 shrink-0"/>
-                            <span>
-                                <strong>자동 채움:</strong> 내가 고른 번호 외에 빈 자리를 AI가 가중치 알고리즘으로 채워 총 5게임을 완성합니다.
-                            </span>
+                            <div className="flex flex-col gap-1">
+                                <span><strong>스마트 AI 필터링:</strong> 자동 생성 시 비현실적인 패턴을 자동으로 걸러냅니다.</span>
+                                <ul className="list-disc pl-4 text-gray-500 space-y-0.5">
+                                    <li>3개 이상 연속된 번호 제외 (예: 11,12,13)</li>
+                                    <li>특정 구간 쏠림 현상 방지</li>
+                                    <li>홀수/짝수 비율 균형 조정</li>
+                                </ul>
+                            </div>
                         </li>
                     </ul>
                 </div>
