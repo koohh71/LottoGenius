@@ -11,8 +11,31 @@ from ..schemas.lotto import GenerateRequest
 # SSL 경고 끄기
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# --- 인메모리 캐시 (속도 최적화) ---
+_CACHE = {
+    "last_round": 0,
+    "weights": {},  # key: limit
+    "stats": {}     # key: limit
+}
+
+def _check_cache_validity(db: Session):
+    """DB의 최신 회차와 캐시된 회차가 다르면 캐시를 초기화합니다."""
+    current_max = lotto_crud.get_max_round(db)
+    if _CACHE["last_round"] != current_max:
+        _CACHE["last_round"] = current_max
+        _CACHE["weights"] = {}
+        _CACHE["stats"] = {}
+    return current_max
+
 def calculate_weights(db: Session, limit: int) -> Dict[int, int]:
-    """최근 데이터를 기반으로 가중치를 계산합니다."""
+    """최근 데이터를 기반으로 가중치를 계산합니다 (캐싱 적용)."""
+    _check_cache_validity(db)
+    
+    # 캐시 적중 시 바로 반환
+    if limit in _CACHE["weights"]:
+        return _CACHE["weights"][limit]
+
+    # 캐시 없으면 계산
     rounds = lotto_crud.get_recent_rounds(db, limit)
     if not rounds:
         return {n: 1 for n in range(1, 46)}
@@ -25,7 +48,11 @@ def calculate_weights(db: Session, limit: int) -> Dict[int, int]:
         ])
     
     counter = Counter(numbers_history)
-    return {n: counter.get(n, 0) + 1 for n in range(1, 46)}
+    weights = {n: counter.get(n, 0) + 1 for n in range(1, 46)}
+    
+    # 결과 캐싱
+    _CACHE["weights"][limit] = weights
+    return weights
 
 def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]:
     """조건에 맞는 로또 번호를 생성합니다."""
@@ -54,7 +81,13 @@ def generate_lotto_numbers(db: Session, req: GenerateRequest) -> List[List[int]]
     return results
 
 def get_lotto_stats(db: Session, limit: int) -> Dict:
-    """통계 데이터를 생성합니다."""
+    """통계 데이터를 생성합니다 (캐싱 적용)."""
+    _check_cache_validity(db)
+
+    # 캐시 적중 시 바로 반환
+    if limit in _CACHE["stats"]:
+        return _CACHE["stats"][limit]
+
     rounds = lotto_crud.get_recent_rounds(db, limit)
     if not rounds:
         return {}
@@ -66,18 +99,14 @@ def get_lotto_stats(db: Session, limit: int) -> Dict:
             r.drwt_no4, r.drwt_no5, r.drwt_no6
         ])
     
-    # 1~45번 모든 번호의 빈도 계산 (0회 출현 포함)
+    # 1~45번 모든 번호의 빈도 계산
     counter = {n: 0 for n in range(1, 46)}
     for n in numbers_history:
         counter[n] += 1
         
-    # 정렬 (오름차순: 적게 나온 순)
     sorted_counts = sorted(counter.items(), key=lambda x: x[1])
     
-    # 최소 당첨 (적게 나온 순서 10개)
     min_freq_data = [{"num": k, "count": v} for k, v in sorted_counts[:10]]
-    
-    # 최다 당첨 (많이 나온 순서 10개 - 뒤에서부터 자르고 뒤집기)
     max_freq_data = [{"num": k, "count": v} for k, v in sorted_counts[-10:]]
     max_freq_data.reverse()
     
@@ -91,11 +120,15 @@ def get_lotto_stats(db: Session, limit: int) -> Dict:
     
     range_data = [{"name": k, "value": v} for k, v in ranges.items()]
     
-    return {
+    result = {
         "frequency": max_freq_data,
         "min_frequency": min_freq_data,
         "ranges": range_data
     }
+    
+    # 결과 캐싱
+    _CACHE["stats"][limit] = result
+    return result
 
 def fetch_external_lotto_data(round_no: int):
     """외부 API에서 로또 데이터를 가져옵니다."""
