@@ -1,9 +1,9 @@
-
 import sys
 import traceback
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import Qt
-from ui.login_window import LoginWindow
+# [변경] login_window 대신 dashboard 사용
+from ui.dashboard import SyncDashboard
 
 def exception_hook(exctype, value, tb):
     error_msg = "".join(traceback.format_exception(exctype, value, tb))
@@ -21,14 +21,13 @@ sys.excepthook = exception_hook
 
 def main():
     try:
-        # PyQt5 High DPI support
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         
         app = QApplication(sys.argv)
         
-        # 이제 LoginWindow가 메인 역할을 수행합니다.
-        window = LoginWindow()
+        # Dashboard 로드
+        window = SyncDashboard()
         window.show()
 
         sys.exit(app.exec_())
