@@ -1,0 +1,4 @@
+PyQt5
+PyQt-Fluent-Widgets
+paramiko
+pyftpdlib

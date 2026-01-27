@@ -1,0 +1,20 @@
+# Virtual Environment
+venv/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# UI/Assets
+*.ui
+
+# Dist
+dist/
+build/
+*.spec
+
+# Test Data & Logs
+test_remote/
+crash_log.txt
