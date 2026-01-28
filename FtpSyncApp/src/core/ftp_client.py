@@ -1,3 +1,4 @@
+
 import os
 import time
 import ftplib
@@ -98,7 +99,13 @@ class FtpClient:
         for rel_path in local_files:
             if rel_path not in remote_files: to_delete.append(rel_path)
 
+        # [변경] 전체 전송 용량 계산
+        total_bytes = sum(remote_files[p]['size'] for p in to_download)
         total_ops = len(to_delete) + len(to_create_dir) + len(to_download)
+        
+        # 분석 결과 보고 (status='plan')
+        report(f"Analysis complete: {len(to_download)} files to download.", 0, total_ops, 0, total_bytes, status='plan')
+
         if total_ops == 0:
             report("Everything is up to date.", 100, 100)
             return True
@@ -120,7 +127,7 @@ class FtpClient:
             report(f"Creating directory {rel_path}...", processed, total_ops, status='success')
             os.makedirs(os.path.join(local_root, rel_path), exist_ok=True)
 
-        # Download (Sequential)
+        # Download
         for rel_path in to_download:
             report(f"Downloading {rel_path}...", processed, total_ops)
             local_path = os.path.join(local_root, rel_path)
@@ -153,13 +160,10 @@ class FtpClient:
         temp_path = local_path + ".tmp"
         bytes_downloaded = 0
         
-        # [스마트 버퍼링 재적용]
-        if file_size > 10 * 1024 * 1024:   # 10MB 이상
-            block_size = 256 * 1024        # 256KB
-        elif file_size > 1 * 1024 * 1024:  # 1MB 이상
-            block_size = 64 * 1024         # 64KB
-        else:                              # 1MB 미만
-            block_size = 32 * 1024         # 32KB
+        # 스마트 버퍼링 유지
+        if file_size > 10 * 1024 * 1024: block_size = 256 * 1024
+        elif file_size > 1 * 1024 * 1024: block_size = 64 * 1024
+        else: block_size = 32 * 1024
 
         def file_callback(data):
             nonlocal bytes_downloaded
